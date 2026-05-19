@@ -98,7 +98,8 @@ namespace frm_mcafee_unin
             {
                 ClearPendingStep3();
                 GoToStep(2);
-                Log("Khởi động lại hoàn tất — đang bắt đầu Bước 3...");
+                Log(S.T("Khởi động lại hoàn tất — đang bắt đầu Bước 3...",
+                         "Restart complete — starting Step 3..."));
                 await Task.Delay(800);
                 BtnScanLeftovers_Click(null, EventArgs.Empty);
                 return;
@@ -108,14 +109,16 @@ namespace frm_mcafee_unin
             bool found = DetectMcAfee();
             if (!found)
             {
-                Log("Không tìm thấy McAfee — chuyển sang quét dọn.");
+                Log(S.T("Không tìm thấy McAfee — chuyển sang quét dọn.",
+                         "McAfee not found — proceeding to cleanup scan."));
                 GoToStep(2);
                 await Task.Delay(400);
                 BtnScanLeftovers_Click(null, EventArgs.Empty);
                 return;
             }
 
-            Log("Phát hiện McAfee. Đang tự động tạo điểm sao lưu...");
+            Log(S.T("Phát hiện McAfee. Đang tự động tạo điểm sao lưu...",
+                     "McAfee detected. Creating backup automatically..."));
             await RunStep1();
         }
 
@@ -131,8 +134,10 @@ namespace frm_mcafee_unin
             await Task.Run(() => ExportRegistryBackup());
 
             string msg = rpOk
-                ? "✔ System Restore Point đã tạo. File .reg backup (nếu có) đã xuất ra Desktop."
-                : "⚠ Không tạo được Restore Point — System Restore có thể đang tắt. Vẫn tiếp tục được.";
+                ? S.T("✔ System Restore Point đã tạo. File .reg backup (nếu có) đã xuất ra Desktop.",
+                       "✔ System Restore Point created. .reg backup file (if any) exported to Desktop.")
+                : S.T("⚠ Không tạo được Restore Point — System Restore có thể đang tắt. Vẫn tiếp tục được.",
+                       "⚠ Could not create Restore Point — System Restore may be disabled. You can still continue.");
 
             Log(msg);
             lblBackupStatus.Text      = msg;
@@ -245,15 +250,16 @@ namespace frm_mcafee_unin
                 // Set flag TRƯỚC khi chạy — đề phòng McAfee tự restart mà không qua countdown của tool
                 SetPendingStep3WithRunOnce();
 
-                Log("Tìm thấy mc-update.exe — đang chạy /uninstall...");
+                Log(S.T("Tìm thấy mc-update.exe — đang chạy /uninstall...",
+                         "Found mc-update.exe — running /uninstall..."));
                 bool ok = await Task.Run(() => RunMcUpdateUninstall(exePath, _abortCts.Token));
                 btnAbort.Enabled = false;
 
                 if (_abortCts.IsCancellationRequested)
                 {
                     ClearPendingStep3();
-                    Log("⚠ Đã hủy bỏ gỡ cài đặt.");
-                    lblUninstallStatus.Text      = "Đã hủy bỏ.";
+                    Log(S.T("⚠ Đã hủy bỏ gỡ cài đặt.", "⚠ Uninstall aborted."));
+                    lblUninstallStatus.Text      = S.T("Đã hủy bỏ.", "Aborted.");
                     lblUninstallStatus.ForeColor = System.Drawing.Color.FromArgb(255, 160, 50);
                     btnRunUninstall.Enabled = true;
                     btnNext.Enabled         = true;
@@ -262,22 +268,24 @@ namespace frm_mcafee_unin
 
                 if (ok)
                 {
-                    Log("✔ Gỡ cài đặt hoàn tất.");
-                    lblUninstallStatus.Text      = "✔ Gỡ cài đặt thành công.";
+                    Log(S.T("✔ Gỡ cài đặt hoàn tất.", "✔ Uninstall complete."));
+                    lblUninstallStatus.Text      = S.T("✔ Gỡ cài đặt thành công.", "✔ Uninstall successful.");
                     lblUninstallStatus.ForeColor = System.Drawing.Color.FromArgb(50, 200, 120);
                     PromptRestart();
                 }
                 else
                 {
                     ClearPendingStep3();
-                    Log("⚠ mc-update thất bại — chuyển sang phương án Safe Mode.");
+                    Log(S.T("⚠ mc-update thất bại — chuyển sang phương án Safe Mode.",
+                             "⚠ mc-update failed — switching to Safe Mode fallback."));
                     OfferSafeModeCleanup();
                 }
             }
             else
             {
                 btnAbort.Enabled = false;
-                Log("Không tìm thấy mc-update.exe — chuyển sang phương án Safe Mode.");
+                Log(S.T("Không tìm thấy mc-update.exe — chuyển sang phương án Safe Mode.",
+                         "mc-update.exe not found — switching to Safe Mode fallback."));
                 OfferSafeModeCleanup();
             }
         }
@@ -286,15 +294,16 @@ namespace frm_mcafee_unin
         {
             using (var dlg = new OpenFileDialog
             {
-                Title  = "Chọn mc-update.exe (hoặc trình gỡ McAfee bất kỳ)",
+                Title  = S.T("Chọn mc-update.exe (hoặc trình gỡ McAfee bất kỳ)",
+                              "Select mc-update.exe (or any McAfee uninstaller)"),
                 Filter = "Executable|*.exe",
             })
             {
                 if (dlg.ShowDialog() == DialogResult.OK)
                 {
                     _customUninstallExe = dlg.FileName;
-                    lblUninstallStatus.Text = "Đường dẫn: " + _customUninstallExe;
-                    Log("Đường dẫn tuỳ chỉnh: " + _customUninstallExe);
+                    lblUninstallStatus.Text = S.T("Đường dẫn: ", "Path: ") + _customUninstallExe;
+                    Log(S.T("Đường dẫn tuỳ chỉnh: ", "Custom path: ") + _customUninstallExe);
                 }
             }
         }
@@ -303,7 +312,7 @@ namespace frm_mcafee_unin
         {
             _abortCts?.Cancel();
             btnAbort.Enabled = false;
-            Log("Đang hủy bỏ tiến trình gỡ cài đặt...");
+            Log(S.T("Đang hủy bỏ tiến trình gỡ cài đặt...", "Aborting uninstall process..."));
             try { _uninstallProcess?.Kill(); } catch { }
         }
 
@@ -395,15 +404,16 @@ namespace frm_mcafee_unin
         private void UpdateRestartLabel()
         {
             string msg = _restartCountdown > 0
-                ? $"✔ Gỡ cài đặt xong. Máy sẽ khởi động lại sau {_restartCountdown}s để hoàn tất.\n(Tool sẽ tự mở lại và thực hiện Bước 3)"
-                : "Đang khởi động lại...";
+                ? S.T($"✔ Gỡ cài đặt xong. Máy sẽ khởi động lại sau {_restartCountdown}s để hoàn tất.\n(Tool sẽ tự mở lại và thực hiện Bước 3)",
+                       $"✔ Uninstall complete. Restarting in {_restartCountdown}s to finish.\n(Tool will reopen automatically and run Step 3)")
+                : S.T("Đang khởi động lại...", "Restarting...");
 
             if (lblUninstallStatus.InvokeRequired)
                 lblUninstallStatus.Invoke(new Action(() => { lblUninstallStatus.Text = msg; }));
             else
                 lblUninstallStatus.Text = msg;
 
-            Log($"Khởi động lại sau {_restartCountdown}s...");
+            Log(S.T($"Khởi động lại sau {_restartCountdown}s...", $"Restarting in {_restartCountdown}s..."));
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -412,10 +422,14 @@ namespace frm_mcafee_unin
         private void OfferSafeModeCleanup()
         {
             var dlg = MessageBox.Show(
-                "mc-update.exe không hoạt động được.\n\n" +
-                "Tool sẽ lên lịch dọn dẹp tự động trong Safe Mode (1 lần duy nhất),\n" +
-                "sau đó khởi động lại máy.\n\nBạn có muốn tiếp tục không?",
-                "Phương án Safe Mode", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                S.T("mc-update.exe không hoạt động được.\n\n" +
+                    "Tool sẽ lên lịch dọn dẹp tự động trong Safe Mode (1 lần duy nhất),\n" +
+                    "sau đó khởi động lại máy.\n\nBạn có muốn tiếp tục không?",
+                    "mc-update.exe did not work.\n\n" +
+                    "The tool will schedule an automatic cleanup in Safe Mode (one time only),\n" +
+                    "then restart the machine.\n\nDo you want to continue?"),
+                S.T("Phương án Safe Mode", "Safe Mode Fallback"),
+                MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
             if (dlg == DialogResult.Yes)
                 ScheduleSafeModeCleanup();
@@ -423,7 +437,7 @@ namespace frm_mcafee_unin
             {
                 btnRunUninstall.Enabled = true;
                 btnNext.Enabled         = true;
-                Log("Bỏ qua Safe Mode — tiếp tục sang Bước 3.");
+                Log(S.T("Bỏ qua Safe Mode — tiếp tục sang Bước 3.", "Skipped Safe Mode — continuing to Step 3."));
             }
         }
 
@@ -431,7 +445,7 @@ namespace frm_mcafee_unin
         {
             try
             {
-                Log("Đang thiết lập Safe Mode boot...");
+                Log(S.T("Đang thiết lập Safe Mode boot...", "Setting up Safe Mode boot..."));
 
                 string scriptPath = Path.Combine(@"C:\Windows\Temp", "mcafee_safemode_clean.ps1");
                 File.WriteAllText(scriptPath, BuildSafeModeScript(scriptPath), System.Text.Encoding.UTF8);
@@ -450,20 +464,26 @@ namespace frm_mcafee_unin
                 // Bật Safe Mode (minimal — không cần network)
                 RunCmd("bcdedit", "/set {current} safeboot minimal");
 
-                Log("Đã thiết lập. Máy sẽ khởi động lại vào Safe Mode...");
+                Log(S.T("Đã thiết lập. Máy sẽ khởi động lại vào Safe Mode...",
+                         "Setup complete. Machine will restart into Safe Mode..."));
                 MessageBox.Show(
-                    "Đã thiết lập xong!\n\n" +
-                    "Máy sẽ boot vào Safe Mode, tự dọn sạch McAfee,\n" +
-                    "rồi khởi động lại bình thường và tự mở Bước 3.",
-                    "Sẵn sàng", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    S.T("Đã thiết lập xong!\n\n" +
+                        "Máy sẽ boot vào Safe Mode, tự dọn sạch McAfee,\n" +
+                        "rồi khởi động lại bình thường và tự mở Bước 3.",
+                        "Setup complete!\n\n" +
+                        "The machine will boot into Safe Mode, clean McAfee automatically,\n" +
+                        "then restart normally and reopen Step 3."),
+                    S.T("Sẵn sàng", "Ready"), MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                 RunCmd("shutdown", "/r /t 5");
             }
             catch (Exception ex)
             {
                 Log($"Lỗi: {ex.Message}");
-                MessageBox.Show("Không thể thiết lập Safe Mode.\nHãy chắc chắn chạy tool với quyền Administrator.",
-                    "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(
+                    S.T("Không thể thiết lập Safe Mode.\nHãy chắc chắn chạy tool với quyền Administrator.",
+                         "Could not set up Safe Mode.\nMake sure the tool is running as Administrator."),
+                    S.T("Lỗi", "Error"), MessageBoxButtons.OK, MessageBoxIcon.Error);
                 btnRunUninstall.Enabled = true;
                 btnNext.Enabled         = true;
             }
@@ -535,7 +555,7 @@ namespace frm_mcafee_unin
             treeLeftovers.Nodes.Clear();
             _foundFolders.Clear();
             _foundRegKeys.Clear();
-            Log("Đang quét toàn bộ hệ thống...");
+            Log(S.T("Đang quét toàn bộ hệ thống...", "Scanning the entire system..."));
 
             await Task.Run(() => ScanSystem());
             PopulateTree();
@@ -543,15 +563,17 @@ namespace frm_mcafee_unin
 
             if (_foundFolders.Count == 0 && _foundRegKeys.Count == 0)
             {
-                Log("✔ Hệ thống sạch hoàn toàn.");
+                Log(S.T("✔ Hệ thống sạch hoàn toàn.", "✔ System is completely clean."));
                 MessageBox.Show(
-                    "Hệ thống đã sạch hoàn toàn!\nKhông tìm thấy bất kỳ dấu vết McAfee nào.",
-                    "Hoàn tất", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    S.T("Hệ thống đã sạch hoàn toàn!\nKhông tìm thấy bất kỳ dấu vết McAfee nào.",
+                         "System is completely clean!\nNo McAfee traces found."),
+                    S.T("Hoàn tất", "Complete"), MessageBoxButtons.OK, MessageBoxIcon.Information);
                 this.Close();
             }
             else
             {
-                Log($"Tìm thấy {_foundFolders.Count} thư mục, {_foundRegKeys.Count} registry key.");
+                Log(S.T($"Tìm thấy {_foundFolders.Count} thư mục, {_foundRegKeys.Count} registry key.",
+                         $"Found {_foundFolders.Count} folder(s), {_foundRegKeys.Count} registry key(s)."));
                 btnDeleteSelected.Enabled = true;
             }
         }
@@ -823,7 +845,7 @@ namespace frm_mcafee_unin
 
             if (_foundFolders.Count > 0)
             {
-                var node = new TreeNode($"Thư mục ({_foundFolders.Count})");
+                var node = new TreeNode(S.T($"Thư mục ({_foundFolders.Count})", $"Folders ({_foundFolders.Count})"));
                 foreach (var f in _foundFolders)
                     node.Nodes.Add(new TreeNode(f) { Checked = true, Tag = "folder" });
                 node.Expand();
@@ -846,14 +868,15 @@ namespace frm_mcafee_unin
             ValidateBackupFiles();
 
             if (MessageBox.Show(
-                    "Xóa tất cả mục đã tích chọn?\nHành động này không thể hoàn tác.",
-                    "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                    S.T("Xóa tất cả mục đã tích chọn?\nHành động này không thể hoàn tác.",
+                         "Delete all selected items?\nThis action cannot be undone."),
+                    S.T("Xác nhận", "Confirm"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
             btnDeleteSelected.Enabled = false;
             btnScanLeftovers.Enabled  = false;
             _hasPendingDeletes = false;
-            Log("Đang kill tiến trình McAfee...");
+            Log(S.T("Đang kill tiến trình McAfee...", "Killing McAfee processes..."));
 
             // Thu thập danh sách trên UI thread trước khi vào background — tránh cross-thread access
             var items = new List<Tuple<string, bool>>();
@@ -878,8 +901,8 @@ namespace frm_mcafee_unin
                     bool   ok       = isFolder ? DeleteFolder(target) : DeleteRegistryKey(target);
 
                     Log(ok
-                        ? $"  ✔ Đã xóa {(isFolder ? "thư mục" : "key")}: {target}"
-                        : $"  ✘ Thất bại {(isFolder ? "thư mục" : "key")}: {target}");
+                        ? $"  ✔ {S.T("Đã xóa", "Deleted")} {(isFolder ? S.T("thư mục", "folder") : "key")}: {target}"
+                        : $"  ✘ {S.T("Thất bại", "Failed")} {(isFolder ? S.T("thư mục", "folder") : "key")}: {target}");
 
                     if (ok) deleted++; else failed++;
                 }
@@ -903,18 +926,21 @@ namespace frm_mcafee_unin
             GenerateUndoScript();
             FlushLogToFile();
             string freedStr = freedBytes > 0
-                ? string.Format(" | Giải phóng (ước tính): {0:0.0} MB", freedBytes / 1048576.0)
+                ? string.Format(S.T(" | Giải phóng (ước tính): {0:0.0} MB", " | Freed (approx.): {0:0.0} MB"), freedBytes / 1048576.0)
                 : "";
-            Log("✔ Xóa xong: " + deleted + " thành công, " + failed + " thất bại." + freedStr + " — Defender đã bật.");
+            Log(S.T("✔ Xóa xong: ", "✔ Done: ") + deleted + S.T(" thành công, ", " succeeded, ") + failed + S.T(" thất bại.", " failed.") + freedStr + S.T(" — Defender đã bật.", " — Defender re-enabled."));
             TrySendLog("McAfee Cleanup: deleted=" + deleted + " failed=" + failed + freedStr);
 
             string pendingNote = _hasPendingDeletes
-                ? "\n\n⚠ Một số tệp đang bị khóa bởi kernel và sẽ tự động xóa sau khi bạn KHỞI ĐỘNG LẠI máy."
+                ? S.T("\n\n⚠ Một số tệp đang bị khóa bởi kernel và sẽ tự động xóa sau khi bạn KHỞI ĐỘNG LẠI máy.",
+                       "\n\n⚠ Some files are locked by the kernel and will be deleted automatically after you RESTART.")
                 : "";
             MessageBox.Show(
-                "Hoàn tất!\n✔ Thành công: " + deleted + "\n✘ Thất bại: " + failed + freedStr +
-                "\n\nWindows Defender đã được bật lại.\nScript phục hồi đã tạo trên Desktop.\nLog chi tiết: C:\\Windows\\Temp\\McAfeeCleanup_Final.log" + pendingNote,
-                "Hoàn tất", MessageBoxButtons.OK,
+                S.T("Hoàn tất!\n✔ Thành công: ", "Done!\n✔ Succeeded: ") + deleted +
+                S.T("\n✘ Thất bại: ", "\n✘ Failed: ") + failed + freedStr +
+                S.T("\n\nWindows Defender đã được bật lại.\nScript phục hồi đã tạo trên Desktop.\nLog chi tiết: C:\\Windows\\Temp\\McAfeeCleanup_Final.log",
+                     "\n\nWindows Defender has been re-enabled.\nRestore script created on Desktop.\nDetailed log: C:\\Windows\\Temp\\McAfeeCleanup_Final.log") + pendingNote,
+                S.T("Hoàn tất", "Done"), MessageBoxButtons.OK,
                 _hasPendingDeletes ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
 
             // Quét lại để xác nhận
@@ -923,11 +949,11 @@ namespace frm_mcafee_unin
             if (_foundFolders.Count == 0 && _foundRegKeys.Count == 0)
             {
                 treeLeftovers.Nodes.Clear();
-                treeLeftovers.Nodes.Add(new TreeNode("✔  Hệ thống sạch hoàn toàn.")
+                treeLeftovers.Nodes.Add(new TreeNode(S.T("✔  Hệ thống sạch hoàn toàn.", "✔  System is completely clean."))
                 {
                     ForeColor = System.Drawing.Color.FromArgb(50, 200, 120)
                 });
-                Log("✔ Hệ thống sạch hoàn toàn.");
+                Log(S.T("✔ Hệ thống sạch hoàn toàn.", "✔ System is completely clean."));
             }
 
             btnScanLeftovers.Enabled = true;
@@ -996,9 +1022,12 @@ namespace frm_mcafee_unin
         private void BtnCleanupTempFiles_Click(object sender, EventArgs e)
         {
             CleanupOldBackupFiles(TimeSpan.Zero);
-            Log("✔ Đã dọn sạch file backup và undo script trên Desktop.");
-            MessageBox.Show("Đã xóa tất cả file .reg backup và script phục hồi trên Desktop.",
-                "Dọn dẹp xong", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            Log(S.T("✔ Đã dọn sạch file backup và undo script trên Desktop.",
+                     "✔ Cleaned up backup files and undo script from Desktop."));
+            MessageBox.Show(
+                S.T("Đã xóa tất cả file .reg backup và script phục hồi trên Desktop.",
+                     "All .reg backup files and restore script have been removed from Desktop."),
+                S.T("Dọn dẹp xong", "Cleanup Complete"), MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         // Quét ServiceDll trong registry để tìm service ẩn của svchost host McAfee DLL
@@ -1053,7 +1082,7 @@ namespace frm_mcafee_unin
             UpdateStepIndicator(index);
 
             if (index == tabControl.TabCount - 1)
-                btnNext.Text = "Hoàn tất  ✔";
+                btnNext.Text = S.T("Hoàn tất  ✔", "Done  ✔");
 
             // Bước 2: phải nhấn nút gỡ và hoàn tất mới được Tiếp tục
             if (index == 1)
@@ -1068,8 +1097,9 @@ namespace frm_mcafee_unin
             }
             else
             {
-                MessageBox.Show("Hệ thống đã được dọn sạch hoàn toàn!", "Hoàn tất",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(
+                    S.T("Hệ thống đã được dọn sạch hoàn toàn!", "The system has been completely cleaned!"),
+                    S.T("Hoàn tất", "Done"), MessageBoxButtons.OK, MessageBoxIcon.Information);
                 this.Close();
             }
         }
