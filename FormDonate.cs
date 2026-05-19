@@ -8,7 +8,7 @@ namespace frm_mcafee_unin
     {
         public FormDonate()
         {
-            this.Text            = "Ủng hộ tác giả ☕";
+            this.Text            = S.T("Ủng hộ tác giả ☕", "Support the Author ☕");
             this.Size            = new Size(520, 400);
             this.MinimumSize     = this.Size;
             this.MaximumSize     = this.Size;
@@ -23,7 +23,7 @@ namespace frm_mcafee_unin
 
             var lblTitle = new Label
             {
-                Text      = "Cảm ơn bạn đã sử dụng McAfee Uninstall Tool!",
+                Text      = S.T("Cảm ơn bạn đã sử dụng McAfee Uninstall Tool!", "Thank you for using McAfee Uninstall Tool!"),
                 Font      = new Font("Segoe UI", 10f, FontStyle.Bold),
                 ForeColor = Color.FromArgb(220, 225, 240),
                 Location  = new Point(20, 16),
@@ -33,7 +33,7 @@ namespace frm_mcafee_unin
 
             var lblSub = new Label
             {
-                Text      = "Nếu tool hữu ích, bạn có thể ủng hộ tác giả qua:",
+                Text      = S.T("Nếu tool hữu ích, bạn có thể ủng hộ tác giả qua:", "If this tool helped you, consider supporting the author via:"),
                 Font      = new Font("Segoe UI", 8.5f),
                 ForeColor = Color.FromArgb(120, 130, 150),
                 Location  = new Point(20, 42),
@@ -45,12 +45,12 @@ namespace frm_mcafee_unin
             var pnlTcb = MakeQrPanel("Techcombank (TCB)", "tcb.jpg", new Point(30, 72));
 
             // ── MoMo QR ─────────────────────────────────────────────────────
-            var pnlMomo = MakeQrPanel("Ví MoMo", "momo.jpg", new Point(270, 72));
+            var pnlMomo = MakeQrPanel(S.T("Ví MoMo", "MoMo Wallet"), "momo.jpg", new Point(270, 72));
 
             // ── Close button ─────────────────────────────────────────────────
             var btnClose = new Button
             {
-                Text      = "Đóng",
+                Text      = S.T("Đóng", "Close"),
                 Location  = new Point(200, 334),
                 Size      = new Size(110, 32),
                 FlatStyle = FlatStyle.Flat,
